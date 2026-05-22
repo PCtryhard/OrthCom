@@ -66,3 +66,4 @@ data/raw/*
 !data/raw/.gitkeep
 models/weights/*
 !models/weights/.gitkeep
+.aider*
