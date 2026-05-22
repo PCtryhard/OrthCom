@@ -1,5 +1,6 @@
 from Bio.PDB import PDBIO, PPBuilder, Structure, Model, Chain, Residue
 import numpy as np
+from pathlib import Path
 
 # Define the phi and psi angles for an alpha-helix
 phi_angles = [-57] * 15
@@ -34,5 +35,5 @@ ppb.ppbuild(chain)
 # Save the structure to a PDB file
 io = PDBIO()
 io.set_structure(structure)
-with open("data/raw/helix_scaffold.pdb", "w") as pdb_file:
-    io.save(pdb_file)
+pdb_file_path = Path("data/raw/helix_scaffold.pdb")
+io.save(pdb_file_path, overwrite=True)
