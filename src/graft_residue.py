@@ -15,57 +15,40 @@ target_residue = chain[8]  # BioPython uses 1-indexing; 8 is the exact center
 mol = Chem.MolFromMolFile("data/raw/L_4_fluorophenylalanine.mol", removeHs=False)
 conf = mol.GetConformer()
 
-# 3. Extract matching backbone atoms (N, CA, C) for alignment
+# 3. Extract matching backbone atoms for alignment
 # In BioPython
 bp_atoms = [target_residue["N"], target_residue["CA"], target_residue["C"]]
 
 # In RDKit: Find the backbone atoms by matching atomic numbers and environments
-# L-4-fluorophenylalanine backbone map
 rd_n_idx, rd_ca_idx, rd_c_idx = None, None, None
-for atom in mol.GetAtoms():
-    symbol = atom.GetSymbol()
-    # Find the amine Nitrogen
-    if symbol == "N" and atom.GetTotalNumHs() >= 2:
-        rd_n_idx = atom.GetIdx()
-    elif symbol == "C":
-        # Alpha Carbon is bonded to N and a carboxyl C
-        neighbors = [n.GetSymbol() for n in atom.GetNeighbors()]
-        if "N" in neighbors and "O" in [n.GetSymbol() for n in atom.GetNeighbors()]:
-            # This is the carbonyl carbon or alpha carbon. Let's distinguish:
-            pass
-
-# To make this foolproof without fragile graph matching, we map by known SMILES order
-# The SMILES used was: C(O)(=O)[C@H](CC1=CC=C(F)C=C1)N
-# Let's map coordinates directly based on standard atom indexing
-rd_coords = conf.GetPositions()
-
-# For our specific generated molecule, let's find backbone by neighbor counts:
 for atom in mol.GetAtoms():
     idx = atom.GetIdx()
     if atom.GetSymbol() == "N" and len([n for n in atom.GetNeighbors() if n.GetSymbol() == "C"]) == 1:
         rd_n_idx = idx
     elif atom.GetSymbol() == "C":
         nbors = [n.GetSymbol() for n in atom.GetNeighbors()]
-        # CA is bonded to N, C (carbonyl), and C (beta)
         if "N" in nbors and nbors.count("C") == 2:
             rd_ca_idx = idx
-        # Carbonyl C is bonded to CA, O, O
         elif "O" in nbors and "C" in nbors:
             rd_c_idx = idx
 
-# 4. Compute and apply alignment matrix
+rd_coords = conf.GetPositions()
+
+# 4. Create dummy BioPython atoms from the RDKit coordinates for the Superimposer
+moving_atoms = [
+    Atom.Atom("N", rd_coords[rd_n_idx], 60.0, 1.0, " ", "N", 1, "N"),
+    Atom.Atom("CA", rd_coords[rd_ca_idx], 60.0, 1.0, " ", "CA", 2, "C"),
+    Atom.Atom("C", rd_coords[rd_c_idx], 60.0, 1.0, " ", "C", 3, "C")
+]
+
+# 5. Compute and apply alignment matrix using set_atoms
 sup = Superimposer()
-# BioPython atoms as fixed targets
-fixed_coords = np.array([atom.get_coord() for atom in bp_atoms])
-# RDKit moving atoms
-moving_coords = np.array([rd_coords[rd_n_idx], rd_coords[rd_ca_idx], rd_coords[rd_c_idx]])
+sup.set_atoms(bp_atoms, moving_atoms)
 
-sup.set(fixed_coords, moving_coords)
-
-# Rotate and translate all coordinates of the RDKit molecule
+# Rotate and translate all coordinates of the RDKit molecule based on the matrix
 transformed_coords = np.dot(rd_coords, sup.rotran[0]) + sup.rotran[1]
 
-# 5. Rebuild residue 8 into our custom L4F residue
+# 6. Rebuild residue 8 into our custom L4F residue
 new_residue = Residue.Residue((" ", 8, " "), "L4F", " ")
 
 # Add transformed atoms into the BioPython residue object
@@ -84,11 +67,11 @@ for atom in mol.GetAtoms():
     bp_atom = Atom.Atom(atom_name, coord, 60.0, 1.0, " ", atom_name, atom.GetIdx(), symbol)
     new_residue.add(bp_atom)
 
-# 6. Swap old residue 8 with our new mutated residue
+# 7. Swap old residue 8 with our new mutated residue
 chain.detach_child((" ", 8, " "))
 chain.add(new_residue)
 
-# 7. Write out the final physical Key PDB
+# 8. Write out the final physical Key PDB
 io = PDBIO()
 io.set_structure(structure)
 output_path = Path("data/raw/synthetic_key.pdb")
