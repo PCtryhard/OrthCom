@@ -18,9 +18,9 @@ chain = Chain.Chain("A")
 model.add(chain)
 
 # Create the poly-alanine residues
-for i in range(15):
-    # Create a new residue
-    residue = Residue.Residue("ALA", i + 1, " ")
+for i in range(1, 16):  # Start from 1 and go up to 15
+    # Create a new residue with a unique sequence identifier
+    residue = Residue.Residue("ALA", i, " ")
     chain.add(residue)
 
 # Use the PPBuilder to assign phi and psi angles
