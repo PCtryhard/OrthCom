@@ -2,9 +2,13 @@
 
 mkdir -p data/processed/mpnn
 
-python ProteinMPNN/protein_mpnn_run.py \
-    --pdb_dir data/processed/rfdiffusion \
-    --out_folder data/processed/mpnn \
-    --fixed_chain_label A \
-    --num_seq_per_target 2 \
-    --batch_size 1
+# Loop through every PDB file RFdiffusion generated
+for file in data/processed/rfdiffusion/*.pdb; do
+    echo "Running ProteinMPNN on $file..."
+    python ProteinMPNN/protein_mpnn_run.py \
+        --pdb_path "$file" \
+        --pdb_path_chains "B" \
+        --out_folder data/processed/mpnn \
+        --num_seq_per_target 2 \
+        --batch_size 1
+done
