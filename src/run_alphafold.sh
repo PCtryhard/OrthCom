@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Run ColabFold using the GPU for lightning-fast prediction
+# Update the input path to wherever the actual files are!
 localcolabfold/colabfold-conda/bin/colabfold_batch \
-    data/processed/mpnn \
+    data/processed/mpnn/seqs \
     data/processed/alphafold \
     --num-recycle 3 \
     --model-type alphafold2_ptm
