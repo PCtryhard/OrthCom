@@ -8,4 +8,5 @@ localcolabfold/colabfold-conda/bin/colabfold_batch \
     data/processed/alphafold \
     --num-recycle 0 \
     --num-models 1 \
-    --model-type alphafold2_ptm
+    --model-type alphafold2_ptm \
+    --msa-mode single_sequence
