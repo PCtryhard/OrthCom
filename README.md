@@ -1,27 +1,86 @@
 OrthCom - The Orthogonal Communication Axis
+Mission: To abstract human biology into a programmable, perfectly isolated operating system. We build the physical infrastructure that allows humans to execute targeted biological upgrades without triggering the chaos of native cellular cross-talk.
 
-Mission: To abstract human biology into a programmable, perfectly isolated operating system. We build the physical infrastructure that allows humans to execute targeted biological upgrades without triggering the chaos of native cellular cross-talk.  
+Project Architecture: OrthCom establishes a Biological Address Space via a synthetic Lock and Key system:
 
-Project Architecture: OrthCom establishes a Biological Address Space via a synthetic Lock and Key system:  
-  The Lock (Hardware): A chimeric synNotch receptor installed via viral vector into target tissues. It features an AI-generated (hallucinated) extracellular pocket.  
-  The Key (Software): A synthetic micro-peptide utilizing non-canonical amino acids (ncAAs). It is immune to natural degradation, invisible to T-cells, and orthogonal to native human proteins.  
+The Lock (Hardware): A chimeric synNotch receptor installed via viral vector into target tissues. It features an AI-generated (hallucinated) extracellular pocket.
+
+The Key (Software): A synthetic micro-peptide utilizing non-canonical amino acids (ncAAs). It is immune to natural degradation, invisible to T-cells, and orthogonal to native human proteins.
 
 Phase 1: The Computational Stack (Physical Chemistry)
-Goal: Computationally prove a hallucinated pocket can bind a synthetic ncAA with high thermodynamic stability and zero cross-reactivity.  
+Goal: Computationally prove a hallucinated pocket can bind a synthetic ncAA with high thermodynamic stability and zero cross-reactivity.
 
-  Step 1: 3D Conformer Generation (using RDKit)What it does: Translates the 1D SMILES string of the non-canonical amino acid (L-4-fluorophenylalanine) into an optimized 3D physical volume.  
-    How we use it: This gives us the baseline 3D geometry (the "mol" file) so the quantum engine has a starting point.  
-    
-  Step 2: Quantum Electrostatics (using Psi4)What it does: Solves the Schrödinger equation to map the true electron cloud distortion caused by the highly electronegative Fluorine atom.  
-    How we use it: It generates the raw electrostatic potential (ESP) required to accurately model how this synthetic molecule  will magnetically interact with other proteins.  
-    
-  Step 3: Force Field Translation (using AmberTools)What it does: Translates the quantum electrostatic potential into classical Newtonian "spring" mechanics and point charges for downstream Molecular Dynamics.  
-    How we use it: This generates the final "mol2" and "frcmod" files. These files are the ultimate physics rulebook that tells our simulation software exactly how to handle our synthetic molecule during the final thermodynamic docking tests.  
+Step 1: 3D Conformer Generation (RDKit)
+What it does: Translates the 1D SMILES string of the non-canonical amino acid (L-4-fluorophenylalanine) into an optimized 3D physical volume.
 
-Step 4: Alpha-Helix Scaffolding (using PeptideBuilder)
+How we use it: This gives us the baseline 3D geometry (the "mol" file) so the quantum engine has a starting point.
+
+Step 2: Quantum Electrostatics (Psi4)
+What it does: Solves the Schrödinger equation to map the true electron cloud distortion caused by the highly electronegative Fluorine atom.
+
+How we use it: It generates the raw electrostatic potential (ESP) required to accurately model how this synthetic molecule will magnetically interact with other proteins.
+
+Step 3: Force Field Translation (AmberTools)
+What it does: Translates the quantum electrostatic potential into classical Newtonian "spring" mechanics and point charges for downstream Molecular Dynamics.
+
+How we use it: Generates the final "mol2" and "frcmod" files. These files are the ultimate physics rulebook telling our simulation software exactly how to handle our synthetic molecule during the final thermodynamic docking tests.
+
+Step 4: Alpha-Helix Scaffolding (PeptideBuilder)
 What it does: Generates the 3D coordinates for a perfectly rigid, 15-amino-acid poly-alanine alpha helix.
-How we use it: This serves as the physical "stick" for our Key. An alpha helix is structurally stable, preventing the molecule from flopping around in solution and drastically reducing the thermodynamic penalty required to bind to the receptor.
 
-Step 5: Computational Grafting (using BioPython and RDKit)
+How we use it: Serves as the physical "stick" for our Key. An alpha helix is structurally stable, preventing the molecule from flopping around in solution and drastically reducing the thermodynamic penalty required to bind to the receptor.
+
+Step 5: Computational Grafting (BioPython and RDKit)
+What it does: Mathematically aligns the backbone coordinates of our quantum-mapped L-4-fluorophenylalanine onto the 8th residue (the exact center) of the alpha helix scaffold, cleanly swapping them out.
+
+How we use it: Outputs our true synthetic_key.pdb structure. It locks our non-canonical amino acid firmly into the center of the helix so the highly electronegative Fluorine points outward like the teeth of a physical key.
+
+Phase 2: De Novo Protein Design (Deep Learning Pipeline)
+Goal: Hallucinate a thermodynamically stable receptor pocket that perfectly engulfs the synthetic Key.
+
+Step 6: The "Trojan Horse" Target Preparation (PyMOL)
+What it does: Deep learning structural models (RFdiffusion/AlphaFold) are strictly trained on the 20 canonical amino acids and will throw fatal topology errors when reading L4F. We surgically delete the Fluorine atom in PyMOL, converting the L4F into a heavy-atom Phenylalanine (PHE) while perfectly preserving the quantum-optimized ring rotation.
+
+How we use it: This creates canonical_key.pdb. We use this natural Phenylalanine as a "Trojan Horse" target for the AI to build a hydrophobic pocket around. We will mutate it back to the fluorinated L4F in a later physics-based molecular dynamics step.
+
+Step 7: Backbone Hallucination (RFdiffusion)
+What it does: Uses diffusion models to hallucinate the pure 3D geometry of a novel receptor protein (the Lock) around our Key.
+
+How we use it: We utilize strict parameter controls to force a two-chain complex (contigmap.contigs=[A1-15/0 100-120]) and employ multi-point "Claw" constraints (ppi.hotspot_res=[A3,A8,A13]) to force the generation of a concave, engulfing pocket rather than a flat surface.
+
+Step 8: Sequence Design & Chain Freezing (ProteinMPNN)
+What it does: Examines the naked 3D geometric backbone generated by RFdiffusion and assigns the most thermodynamically stable amino acid sequence possible.
+
+How we use it: We utilize a near-zero sampling temperature (0.0001) to bypass natural variation and strictly lock in the highest-probability stabilizing residues. Crucially, we use "Chain Freezing" (--pdb_path_chains "B") to hold the Key's sequence immutable, forcing the AI to strictly design a complementary hydrophobic environment around the Key without mutating the Key itself.
+
+Step 9: Structural Validation (AlphaFold 2)
+What it does: Operates as a completely blind "Inspector" to ensure the sequences hallucinated by ProteinMPNN will physically fold into the shapes designed by RFdiffusion in a real-world physics environment.
+
+How we use it: Run locally via ColabFold in Single Sequence Mode (bypassing evolutionary MSA network lookups, as these are 100% synthetic proteins). We parse the output JSONs to filter for highly stable structures (pLDDT > 90), proving the engineered Lock survives the "Valley of Death" between geometric hallucination and physical folding.
+
+Post-Mortem & Architecture Decisions (Changelog)
+1. The L4F Dictionary Crash:
+
+Issue: RFdiffusion crashed with KeyError: 'L4F' because the deep learning dictionary lacks non-canonical parameters.
+
+Fix: Converted to PHE in PyMOL. Phenylalanine was explicitly chosen over Tyrosine to avoid the "Polar Penalty." Tyrosine's hydroxyl group would trigger ProteinMPNN to build a hydrogen-bond network in the pocket, which would violently repel the highly hydrophobic L4F when we swap the Fluorine back in later.
+
+2. The "Pool Noodle" Phenomenon:
+
+Issue: Early RFdiffusion runs yielded massive, continuous alpha helices instead of globular receptors with pockets.
+
+Fix: This was caused by targeting only a single amino acid (A8). The AI took the path of least resistance. We implemented the Claw Constraint ([A3,A8,A13]), forcing the AI to physically bend the backbone around the top, middle, and bottom of the Key to satisfy the target metrics.
+
+3. The Contig Fusion Error:
+
+Issue: RFdiffusion fused the hallucinated Lock directly onto the tail end of the Key, creating a single 115-residue chain instead of a two-protein complex, breaking the PPI (Protein-Protein Interaction) module.
+
+Fix: Added the explicit chain break /0 into the contig string.
+
+4. The MSA Timeout / Great Firewall Bottleneck:
+
+Issue: ColabFold wasted minutes per sequence attempting to fetch evolutionary data from MMseqs2, resulting in continuous network timeouts.
+
+Fix: Because hallucinated proteins have zero evolutionary history, building an MSA is biologically useless. Added --msa-mode single_sequence to bypass the server, dropping validation time to seconds and allowing fully offline, autonomous high-throughput GPU batches.
 What it does: Mathematically aligns the backbone coordinates of our quantum-mapped L-4-fluorophenylalanine onto the 8th residue (the exact center) of the alpha helix scaffold, cleanly swapping them out.
 How we use it: This outputs our final "synthetic_key.pdb" structure. It locks our non-canonical amino acid firmly into the center of the helix so the highly electronegative Fluorine points outward like the teeth of a physical key. This gives RFdiffusion the precise geometric target it needs to hallucinate the Lock.
