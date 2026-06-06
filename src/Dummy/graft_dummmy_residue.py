@@ -75,6 +75,6 @@ chain.add(new_residue)
 # 8. Write out the final physical Key PDB
 io = PDBIO()
 io.set_structure(structure)
-output_path = Path("data/raw/canonical_key.pdb")
+output_path = Path("data/raw/CANON.pdb")
 io.save(str(output_path))
 print(f"Successfully generated {output_path} with a true physical Phenylalanine.")

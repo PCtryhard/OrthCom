@@ -2,14 +2,17 @@
 
 mkdir -p data/processed/mpnn
 
-# 1. Run ProteinMPNN (Your command is already perfect for Chain Freezing)
+# 1. Run ProteinMPNN: DESIGN the Lock (chain A), FREEZE the Key (chain B).
+#    --pdb_path_chains lists the chains to DESIGN; every other chain in the PDB
+#    is held fixed as context. NEW topology is scaffold/Lock=A, Key=B, so we
+#    design A and freeze B. (Under the OLD topology Lock was B; hence the flip.)
 for file in data/processed/rfdiffusion/*.pdb; do
     echo "Running ProteinMPNN on $file..."
-    python ProteinMPNN/protein_mpnn_run.py --pdb_path "$file" --pdb_path_chains "B" --out_folder data/processed/mpnn --num_seq_per_target 10 --sampling_temp 0.0001 --batch_size 1
+    python ProteinMPNN/protein_mpnn_run.py --pdb_path "$file" --pdb_path_chains "A" --out_folder data/processed/mpnn --num_seq_per_target 3 --sampling_temp 0.0001 --batch_size 1
 done
 
 # 2. Automatically split FASTA files and isolate the Lock
-echo "Splitting bundled FASTA files and extracting Chain B for AlphaFold..."
+echo "Splitting bundled FASTA files and extracting Chain A (the Lock) for AlphaFold..."
 python -c '
 import os, glob
 
@@ -26,15 +29,17 @@ for f in glob.glob(f"{seq_dir}/*.fa"):
         lines = entry.strip().split("\n")
         header = lines[0]
 
-        # ProteinMPNN separates chains with a slash. Grab the last part (Chain B)
+        # ProteinMPNN separates chains with a slash, in PDB chain order (A/B).
+        # The Lock is chain A -> take the FIRST part. (Old topology had Lock=B,
+        # which is why this used to grab the last part.)
         full_seq = "".join(lines[1:]).replace(" ", "")
-        lock_seq = full_seq.split("/")[-1]
+        lock_seq = full_seq.split("/")[0]
 
-        # Save as seq1 through seq10
+        # Save as seq1 .. seqN (N = num_seq_per_target)
         with open(f"{base_name}_seq{i+1}.fa", "w") as out:
             out.write(">" + header + "\n" + lock_seq + "\n")
 
     # Delete the original bundled file
     os.remove(f)
 '
-echo "Done! 1,000 individual Lock sequences are isolated and ready."
+echo "Done! Individual Lock (chain A) sequences are isolated and ready."
