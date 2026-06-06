@@ -11,17 +11,26 @@
 # INPUT: data/processed/multimer_input/*.fa  (from src/prep_multimer.py). Each
 #   record is  LockSeq:KeySeq  -- ':' is colabfold's chain-break delimiter.
 #
-# ROBUSTNESS (8 GB RTX 4060):
-#   Multimer is heavier than ptm and the complex is ~187 res, so this is the run
-#   most likely to hit the VRAM ceiling. We fold ONE complex per process: an OOM
-#   frees all VRAM and the loop continues (failures logged, not fatal); completed
-#   jobs are skipped on re-run. TF_FORCE_UNIFIED_MEMORY lets XLA spill to host RAM
-#   instead of a hard OOM (proposed safety net -- remove for max speed).
+# PERFORMANCE / STABILITY (8 GB RTX 4060 under WSL2) -- learned the hard way:
+#   The real bottleneck was NOT VRAM size but JAX's default BFC pool allocator,
+#   which on this WSL2/driver combo fragmented catastrophically: ~5 min PER
+#   recycle, then a hard segfault at recycle=2. Switching to the platform
+#   allocator (raw cudaMalloc/cudaFree, XLA_PYTHON_CLIENT_ALLOCATOR below) fixed
+#   both -- stable runs at ~1 s/recycle after the first compiled pass.
+#   TF_FORCE_UNIFIED_MEMORY (a TensorFlow flag) did nothing here: colabfold infers
+#   with JAX/XLA, not the TF GPU runtime, so it is dropped.
+#   We still fold ONE complex per process: a failure frees all VRAM and the loop
+#   continues (failures logged, not fatal); completed jobs are skipped on re-run.
+#
+# RECYCLES:
+#   Use alphafold2_multimer_v3's intended schedule -- up to 20 recycles with early
+#   stop at 0.5 A. Fast-converging complexes stop early; with recycles ~1 s each
+#   the cap is nearly free, and test metrics were still climbing past recycle 3.
 
 set -u
 
 export XLA_PYTHON_CLIENT_PREALLOCATE=false
-export TF_FORCE_UNIFIED_MEMORY=1
+export XLA_PYTHON_CLIENT_ALLOCATOR=platform
 
 IN_DIR="data/processed/multimer_input"
 OUT_DIR="data/processed/multimer"
@@ -47,7 +56,8 @@ for fa in "${fastas[@]}"; do
     localcolabfold/colabfold-conda/bin/colabfold_batch \
         "$fa" \
         "$OUT_DIR" \
-        --num-recycle 3 \
+        --num-recycle 20 \
+        --recycle-early-stop-tolerance 0.5 \
         --num-models 1 \
         --model-type alphafold2_multimer_v3 \
         --msa-mode single_sequence \
