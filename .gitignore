@@ -61,9 +61,31 @@ venv/
 *.swo
 *~
 
-# Data and model weights
-data/raw/*
-!data/raw/.gitkeep
+# Claude Code local files (CLAUDE.md at repo root stays tracked)
+.claude/
+.aider*
+
+# ---- Vendored third-party tools (clone separately; see README "Setup") ----
+RFdiffusion/
+ProteinMPNN/
+localcolabfold/
+install_colabbatch_linux.sh*
+
+# ---- Large model weights (fetch via scripts/download_weights.py) ----
 models/weights/*
 !models/weights/.gitkeep
-.aider*
+
+# ---- Generated data & run outputs ----
+# data/raw is local input territory; we track only the small, irreplaceable
+# assembled scaffold complex so the repo is runnable out-of-the-box.
+data/raw/*
+!data/raw/.gitkeep
+!data/raw/scaffold_complex.pdb
+data/processed/*
+!data/processed/.gitkeep
+outputs/
+samples/
+
+# Stray PDBs / logs at repo root
+/*.pdb
+/*.log
