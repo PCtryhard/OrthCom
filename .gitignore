@@ -69,6 +69,7 @@ venv/
 RFdiffusion/
 ProteinMPNN/
 LigandMPNN/
+rf_diffusion_all_atom/
 localcolabfold/
 install_colabbatch_linux.sh*
 

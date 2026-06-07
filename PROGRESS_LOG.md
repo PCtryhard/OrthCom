@@ -158,6 +158,47 @@
     `data/processed/ligandmpnn/` and `LigandMPNN/outputs/_dryB/` (both gitignored).
     No existing scripts/data/instrument/physics touched.
 
+### 2026-06-07 — Checkpoint commit + permission-audit (housekeeping)
+- **Commit `9d8ed8a`** on `ligand-aware-rebuild` ("Add corrected F-anchor + LigandMPNN
+  F-vs-PHE discrimination dry-run"): `src/prep_ligand.py`, `src/prep_ligandmpnn_input.py`,
+  `src/analyze_ligandmpnn_dryrun.py`, `PROGRESS_LOG.md`, `.gitignore` (+`LigandMPNN/`).
+  651 insertions; diffs shown first. Data/ligand PDBs stay gitignored (untracked).
+- **`/fewer-permission-prompts`:** scanned all 6 session transcripts. **No changes made** —
+  every ≥3× command is either auto-allowed (`cd`/`echo`/`ls`/`git` reads), arbitrary-exec
+  (`wsl`/`python`/`bash`, unsafe to allowlist), or mutating (`rm`). The WSL-wrapper workflow
+  can't be safely allowlisted without a blanket `Bash(wsl -e bash -lc *)` (= arbitrary exec),
+  which I declined to add. `.claude/settings.json` untouched.
+
+### 2026-06-07 — RFdiffusionAA: staged for a (small) local-GPU run — GATE PENDING  *(your steer: get to the run point, don't launch)*
+- **Decision.** Pivot RFdiffusionAA from "cloud-only" toward a **small local first run**,
+  per your "let's try and get to that point" steer. Stage everything reversible; the heavy
+  downloads + system install are held behind your explicit go (below).
+- **Repo cloned (code only).** `git clone --recurse-submodules baker-laboratory/rf_diffusion_all_atom`
+  → `rf_diffusion_all_atom/` (+ submodule `lib/rf2aa`); added to `.gitignore`. No `.sif`/weights yet.
+- **Ligand input VERIFIED against the source — nothing to change.** Traced `make_indep()` →
+  `filter_het()` (matches HETATM by `resname == inference.ligand`) → `parse_mol()` which uses
+  **OpenBabel**: atom types from the **element column**, bonds from **CONECT/geometry**, and
+  **no CCD/template lookup**. So `inference.ligand=PFF` is just a label, and our
+  `data/raw/ligand_L4F.pdb` (8 C + para-F, CONECT) drops in unchanged — the para-F is read as
+  fluorine; the side-chain-only form (no free termini) is exactly the pocket target we want.
+- **Setup probe (sizes are the cost of "local").** Apptainer/Singularity **not installed**
+  (and upstream is **Apptainer-only** — no conda/pip path). Container `.sif` = **~11.8 GB**,
+  weights = **~1.27 GB** (~13 GB total). WSL disk free 891 GB (fine). VRAM: 8 GB box; NVIDIA's
+  ~12 GB floor is for large designs — a **small** de-novo pocket (NRES≈80 + 9 ligand atoms) is
+  tiny and expected to fit 8 GB. Hence start small.
+- **Design mode (first run): de-novo small pocket**, not motif-scaffold. Why: minimal, directly
+  tests "can RFdiffusionAA wrap a backbone around the para-F," and fits 8 GB. Motif-scaffold
+  (reuse the beta-barrel framework, rebuild loops around the docked anchor) is the heavier
+  follow-up once the toolchain is proven.
+- **Effect.** New `src/run_rfdiffusion_aa.sh` (tracked): documents the one-time setup (Apptainer
+  + `.sif`/weights URLs and sizes), stages `ligand_L4F.pdb` into the container bind mount, has a
+  preflight that fails clearly if setup is missing, and runs the exact upstream command form
+  (`contigmap.contigs=['80-80'] inference.ligand=PFF diffuser.T=100`, `--nv`, editable NRES/T/NUM).
+  Same command serves a cloud ≥16 GB GPU (just a different host).
+- **GATE (awaiting your go):** before I (1) `sudo` install Apptainer in WSL2, (2) download the
+  ~11.8 GB `.sif`, (3) download the ~1.27 GB weights. These are heavy + reverse the earlier
+  cloud-only call. No GPU job will be launched regardless until you say so.
+
 ---
 
 ## Preserved / out of scope (guardrails for this effort)
@@ -172,6 +213,9 @@
 - **Strategic note from the dry-run:** the discriminator is not LigandMPNN sequence
   design. Weight the plan toward (a) RFdiffusionAA pocket *shape* that complements
   the para-F, and (b) the physics affinity-gap scoring as the actual L4F-vs-PHE test.
-- Assemble the RFdiffusionAA cloud package (corrected F-ligand HETATM = `ligand_L4F.pdb`,
-  contig, `inference.ligand` code, weights URL, runnable ≥16 GB GPU command block).
-  **STOP before finalizing** for your review (per guardrail).
+- **RFdiffusionAA is staged** (`src/run_rfdiffusion_aa.sh`; ligand verified drop-in).
+  **GATE — awaiting your go** on the ~13 GB + Apptainer install (see entry above):
+  1) `sudo` install Apptainer in WSL2, 2) download `.sif` (~11.8 GB), 3) download
+  weights (~1.27 GB). Then a small first run (`NRES=80, NUM=1`) — shown before launch.
+- After a backbone exists: LigandMPNN sequence (env already installed) → AF2 co-fold
+  instrument → physics affinity-gap (L4F vs PHE) = the real discrimination test.
