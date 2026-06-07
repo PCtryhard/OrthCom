@@ -68,6 +68,7 @@ venv/
 # ---- Vendored third-party tools (clone separately; see README "Setup") ----
 RFdiffusion/
 ProteinMPNN/
+LigandMPNN/
 localcolabfold/
 install_colabbatch_linux.sh*
 
