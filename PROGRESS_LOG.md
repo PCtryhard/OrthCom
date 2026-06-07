@@ -10,6 +10,10 @@
   *affinity gap*, not merely "binds L4F." Every result before this effort was
   against the PHE stand-in, so it only says the old scaffold doesn't grip the
   helix; it says **nothing yet** about L4F-vs-PHE discrimination.
+  - **PIVOT (2026-06-07):** primary target is now **L-2-naphthylalanine (2-Nal)**; **L4F is
+    demoted to the negative control**. The thesis is unchanged (discriminate an ncAA from
+    canonical residues by an affinity gap), only the ncAA changes. See the 2026-06-07 pivot
+    entry in the decision log.
 - **Note on tracking:** `data/` is gitignored, so the ligand PDBs below are *not*
   tracked by git — only the generator scripts are. This file is tracked and can be
   committed when you want.
@@ -229,6 +233,61 @@
     `['80-80']`).
   - `rf_diffusion_all_atom/` stays cloned-but-light (no `.sif`/weights downloaded locally).
 
+### 2026-06-07 — 2-Nal pivot + README/CLAUDE.md overhaul (Task A)  *(your decision)*
+- **Decision (yours).** Pivot the **primary target** from 4-fluoro-Phe (L4F) to
+  **L-2-naphthylalanine (2-Nal)** — a fused bicyclic aromatic with genuine shape/size — and
+  **demote L4F to the negative control / baseline** (the documented ncAA too subtle to
+  discriminate). Thesis unchanged: discriminate an ncAA from canonical residues by an
+  **affinity gap**. New work branch **`ncaa-naphthyl`**.
+- **Why.** The LigandMPNN dry-run: a single para-F moved sequence choice ~0.003 bits
+  (≈ noise; ~50–100× below whole-ligand context). One fluorine is too small a feature; a
+  bicyclic side chain gives a pocket real geometry to grip and no canonical look-alike.
+- **Effect — documentation overhaul (this commit).**
+  - `README.md`: full rewrite. Dropped the "orthogonal communication axis / platform"
+    framing; states the narrowed discrimination thesis, the **ligand-aware** pipeline
+    (anchor → RFdiffusionAA pocket [cloud-only] → LigandMPNN → AF2-multimer co-fold
+    instrument → physics affinity gap), the 2-Nal/L4F/PHE roles, a verified repo map, and a
+    "What didn't work" section. Fixed a stale path ref (`graft_dummmy_residue.py`, 3 m's).
+  - `CLAUDE.md`: full rewrite mirroring the README. Marked the **partial-diffusion** era and
+    its contig mechanics **SUPERSEDED**; replaced "assume the partial-diffusion strategy"
+    with "assume the ligand-aware strategy"; refreshed the artifact list and the still-true
+    hardware/cloud-only facts; points here as source of truth.
+  - This log: added the **"What didn't work (and why)"** section below and the
+    **2-Nal-vs-Trp** action item under *Next*.
+  - No scripts/data touched; instrument and physics path untouched; deprecated scripts kept.
+- **Gate.** Both files shown in full and approved before commit.
+
+---
+
+## What didn't work (and why)
+
+Institutional memory — keep it. Newest first. (Detailed evidence is in the dated decision-log
+entries above; this is the durable index, mirrored in `README.md`.)
+
+1. **A single fluorine is not a discriminable feature (for sequence design).** LigandMPNN with
+   ligand atom-context ON moved its sequence choice between L4F and PHE by Jensen–Shannon
+   divergence **mean ~0.0034 bits** F-proximal (max 0.0099) vs up to **~0.60 bits** for
+   whole-ligand context — ~50–100× smaller. → MPNN *sequence* design cannot discriminate one
+   para-F; discrimination must come from pocket **shape** (RFdiffusionAA) and/or **physics**.
+   Hence **L4F → negative control** and the primary target → **2-Nal**.
+2. **Helical Key in a barrel = frustrated interface (era 2, partial diffusion).** Shallow,
+   one-sided dock (44/82 Key atoms buried, COM ~13 Å off centre); AF2 co-folds buried it more
+   but **deformed the helix** (helical windows 12→2–8), introduced hard clashes (to 0.5 Å),
+   Key pLDDT stuck ~30 while the Lock folded fine. Helix-vs-barrel-loop mismatch; `partial_T`
+   cannot change loop length or relieve a hard clash. → abandoned partial diffusion.
+3. **The original anchor was chemically malformed.** `graft_residue.py` auto-named atoms by
+   element count (`O1/O2/C3…C9`), kept a spurious 2nd carboxylate O and explicit H — wrong for
+   a mid-peptide residue, unusable as a clean ligand. → rebuilt by `prep_ligand.py` from
+   verified CCD coords (side-chain-centric, 0 free O).
+4. **De-novo hallucination = "pool-noodle" helices (era 1).** Hallucinating 100–200 residues
+   around the fixed Key gave long α-helices, not pockets (~1000 designs to fish for a
+   concavity). → motivated the scaffold pivot (era 2), then the ligand-aware approach (current).
+
+*Smaller gotchas:* DL tools crash on `L4F` (`KeyError`) → PHE "Trojan-Horse" stand-in for DL
+steps; Tyr rejected (hydroxyl polar penalty repels the swap-back F); AF2's BFC allocator
+segfaults at recycle 2 → JAX `platform` allocator; synthetic proteins have no MSA →
+`--msa-mode single_sequence`.
+
 ---
 
 ## Preserved / out of scope (guardrails for this effort)
@@ -240,10 +299,18 @@
 - Long GPU jobs require showing the command and getting a yes first.
 
 ## Next
+- **Active effort — 2026-06-07 pivot (branch `ncaa-naphthyl`):** Task A (README + CLAUDE.md
+  overhaul) ✔ this commit; **Task B** = build + verify the **2-Nal** ligand anchor (gated
+  before anything downstream); **Task C** = re-point the pipeline scripts + cloud package at
+  2-Nal, keeping L4F/PHE as controls.
+- **ACTION ITEM — 2-Nal-vs-Trp cross-reactivity test (decisive).** Trp is the only
+  fused-bicyclic canonical aromatic, so it — not PHE — is the real cross-reactivity threat to
+  the 2-Nal story. Once a pocket exists, run the **2-Nal-vs-Trp** affinity gap explicitly; it
+  is the single test most likely to falsify the thesis. On the books now.
 - **Strategic note from the dry-run:** the discriminator is not LigandMPNN sequence
   design. Weight the plan toward (a) RFdiffusionAA pocket *shape* that complements
   the para-F, and (b) the physics affinity-gap scoring as the actual L4F-vs-PHE test.
-- **Cloud package is FINAL** (`cloud/rfdiffusion_aa/`): take it to a ≥16 GB GPU host,
+- **Cloud package** (`cloud/rfdiffusion_aa/` — currently the **L4F** build; being re-pointed to **2-Nal** in Task C): take it to a ≥16 GB GPU host,
   do the one-time setup (clone + `.sif` + weights + Apptainer), run the command in the
   README. First design is `NRES=120, NUM=1`; raise `num_designs` to fan out.
 - After a backbone exists: LigandMPNN sequence (env already installed) → AF2 co-fold
