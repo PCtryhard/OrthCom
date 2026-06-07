@@ -233,6 +233,23 @@
     `['80-80']`).
   - `rf_diffusion_all_atom/` stays cloned-but-light (no `.sif`/weights downloaded locally).
 
+### 2026-06-07 — Task B: 2-Nal ligand anchor built and verified  *(completed)*
+- **Decision.** Build `data/raw/ligand_2NAL.pdb` — the 2-Nal Option-A anchor — from verified
+  RCSB CCD NAL ideal coordinates. Standalone `src/prep_ligand_2nal.py`; does **not** touch
+  `src/prep_ligand.py` or the L4F/PHE controls (confirmed byte-identical by `git hash-object`
+  before and after: `ligand_L4F.pdb` = `ee44ce78`, `ligand_PHE.pdb` = `fc4bdc78`).
+- **Why.** 2-Nal is the primary ncAA target; the ligand anchor is the required input for
+  RFdiffusionAA pocket design. CCD code NAL confirmed: "BETA-(2-NAPHTHYL)-ALANINE", L-peptide,
+  (2S) stereocenter, naphthalen-2-yl attachment via CB methylene.
+- **Asserts passed (machine-checked):** 12 atoms (all C) · O=0, N=0, F=0 · 11 ring C-C bonds
+  (naphthalene) · degree-3 fusion carbons = {C4A, C8A}, mutually bonded · CB↔{CA, C2} only ·
+  CA↔{CB} only · ring planarity max-dev 0.005 Å · sha1 = `ac9f19f7...` (raw) / git =
+  `f1f6ede6...`.
+- **Effect.** `src/prep_ligand_2nal.py` (tracked, reproduces `ligand_2NAL.pdb` byte-for-byte).
+  Scratch `data/processed/_scratch_2nal.cif` deleted. `data/raw/ligand_2NAL.pdb` remains
+  gitignored (generated).
+- **Gate.** Atom names, ring connectivity, O=0 shown and approved by user before commit.
+
 ### 2026-06-07 — 2-Nal pivot + README/CLAUDE.md overhaul (Task A)  *(your decision)*
 - **Decision (yours).** Pivot the **primary target** from 4-fluoro-Phe (L4F) to
   **L-2-naphthylalanine (2-Nal)** — a fused bicyclic aromatic with genuine shape/size — and
@@ -300,9 +317,16 @@ segfaults at recycle 2 → JAX `platform` allocator; synthetic proteins have no 
 
 ## Next
 - **Active effort — 2026-06-07 pivot (branch `ncaa-naphthyl`):** Task A (README + CLAUDE.md
-  overhaul) ✔ this commit; **Task B** = build + verify the **2-Nal** ligand anchor (gated
-  before anything downstream); **Task C** = re-point the pipeline scripts + cloud package at
-  2-Nal, keeping L4F/PHE as controls.
+  overhaul) ✔; **Task B** (2-Nal anchor) ✔; **Task C** (re-point scripts + cloud package at
+  2-Nal) — **paused; see Strategic Hold below**.
+- **STRATEGIC HOLD (2026-06-07): Task C paused.** Evaluating a project reframe toward
+  immunogenicity screening of ncAA-bearing peptides (structure-based ncAA-pMHC scoring
+  vs. the canonical-surrogate shortcut). The verified 2-Nal anchor and the physics path
+  carry over to that reframe; RFdiffusionAA pocket design is shelved, not deleted,
+  pending that decision.
+- **KNOWN PENDING (not done):** `cloud/rfdiffusion_aa/` still contains only
+  `input_L4F_pocket.pdb` (the L4F build). The **2-Nal sibling input + the README re-point
+  are Task C, not yet done** — do not mistake the cloud package for re-pointed to 2-Nal.
 - **ACTION ITEM — 2-Nal-vs-Trp cross-reactivity test (decisive).** Trp is the only
   fused-bicyclic canonical aromatic, so it — not PHE — is the real cross-reactivity threat to
   the 2-Nal story. Once a pocket exists, run the **2-Nal-vs-Trp** affinity gap explicitly; it
