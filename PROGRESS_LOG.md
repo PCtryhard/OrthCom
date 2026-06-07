@@ -199,6 +199,36 @@
   ~11.8 GB `.sif`, (3) download the ~1.27 GB weights. These are heavy + reverse the earlier
   cloud-only call. No GPU job will be launched regardless until you say so.
 
+### 2026-06-07 — GATE RESOLVED: stay CLOUD-ONLY; cloud package finalized  *(your decision)*
+- **Decision.** Do **not** touch the 8 GB box for RFdiffusionAA. Finalize a cloud-ready package;
+  also explicitly **confirm the corrected F-ligand from the anchor-fix gate is baked into it**.
+  (Also informed by a code finding: `sudo` needs a password, so I couldn't have done the local
+  Apptainer install non-interactively anyway.)
+- **Carrier-protein finding (changes the input).** Read the source: a **ligand-only** input would
+  break `inference/utils.py process_target()` (it builds the contig frame from protein **CA**
+  atoms). The upstream examples always pass a real protein + ligand; with a **de-novo** contig
+  the carrier protein is parsed then **discarded** by `insert_contig` (only the ligand is kept as
+  motif). So the cloud input must be **carrier protein + ligand**, not the bare anchor — my first
+  staging script had assumed ligand-only; corrected.
+- **Gate re-confirmation (your explicit ask).** Re-ran `src/prep_ligand.py`: anchor self-check
+  passes (C–F **1.339 Å**, CG···CZ para **2.772 Å**, F nearest ring C = CZ **PARA**, **O = 0**,
+  9 atoms). The cloud input's ligand block was machine-checked: resname **PFF**, **1 F**, **0 O**,
+  9 heavy atoms → **matches the GATE ligand**. RFdiffusionAA reads it via OpenBabel (element +
+  CONECT, no CCD lookup), so the para-F is seen as fluorine; nothing to edit.
+- **Effect (files).**
+  - `src/prep_rfdiffusion_aa_input.py` (new, tracked): builds the cloud input by reusing the
+    verified Kabsch placement; bakes the corrected L4F anchor (resname PFF, CONECT) onto scaffold
+    chain A; asserts 1 F / 0 O / 9 atoms.
+  - `cloud/rfdiffusion_aa/input_L4F_pocket.pdb` (new, **tracked** — the baked-in package input).
+  - `cloud/rfdiffusion_aa/README.md` (new, tracked): self-contained setup (clone + `.sif` +
+    weights + Apptainer), the exact copy-paste run command, the verification stamp, tunables, and
+    the downstream discrimination plan (LigandMPNN → AF2 co-fold → physics L4F-vs-PHE gap; control
+    = `data/raw/ligand_PHE.pdb`).
+  - `src/run_rfdiffusion_aa.sh` (updated): reframed cloud-only; now uses the carrier+ligand input
+    and `inference.ligand=PFF`, default `contigmap.contigs=['120-120']` (no longer the 8 GB-driven
+    `['80-80']`).
+  - `rf_diffusion_all_atom/` stays cloned-but-light (no `.sif`/weights downloaded locally).
+
 ---
 
 ## Preserved / out of scope (guardrails for this effort)
@@ -213,9 +243,11 @@
 - **Strategic note from the dry-run:** the discriminator is not LigandMPNN sequence
   design. Weight the plan toward (a) RFdiffusionAA pocket *shape* that complements
   the para-F, and (b) the physics affinity-gap scoring as the actual L4F-vs-PHE test.
-- **RFdiffusionAA is staged** (`src/run_rfdiffusion_aa.sh`; ligand verified drop-in).
-  **GATE — awaiting your go** on the ~13 GB + Apptainer install (see entry above):
-  1) `sudo` install Apptainer in WSL2, 2) download `.sif` (~11.8 GB), 3) download
-  weights (~1.27 GB). Then a small first run (`NRES=80, NUM=1`) — shown before launch.
+- **Cloud package is FINAL** (`cloud/rfdiffusion_aa/`): take it to a ≥16 GB GPU host,
+  do the one-time setup (clone + `.sif` + weights + Apptainer), run the command in the
+  README. First design is `NRES=120, NUM=1`; raise `num_designs` to fan out.
 - After a backbone exists: LigandMPNN sequence (env already installed) → AF2 co-fold
-  instrument → physics affinity-gap (L4F vs PHE) = the real discrimination test.
+  instrument → physics affinity-gap (**L4F vs PHE**; control `data/raw/ligand_PHE.pdb`)
+  = the real discrimination test.
+- Possible follow-up: a **motif-scaffold** variant (keep beta-barrel strands, rebuild
+  loops around the docked anchor) if de-novo pockets don't grip the aromatic.
