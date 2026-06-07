@@ -53,7 +53,7 @@ apptainer run --nv rf_se3_diffusion.sif -u run_inference.py \
   inference.output_prefix=output/l4f_pocket/des \
   inference.input_pdb=input/input_L4F_pocket.pdb \
   inference.ligand=PFF \
-  contigmap.contigs=['120-120'] \
+  contigmap.contigs=[\'120-120\'] \
   inference.num_designs=1 \
   inference.design_startnum=0
 ```
@@ -61,7 +61,7 @@ apptainer run --nv rf_se3_diffusion.sif -u run_inference.py \
 (Equivalent repo-integrated runner: `src/run_rfdiffusion_aa.sh`, same parameters.)
 
 ### Tunables
-- `contigmap.contigs=['N-N']` — pocket length. Start ~**120** for this small
+- `contigmap.contigs=[\'N-N\']` — pocket length. Start ~**120** for this small
   aromatic; 80–150 is sane. Smaller = more compact (less "pool-noodle" risk).
 - `inference.num_designs` — raise to fan out once the first design looks sane.
 - `diffuser.T` — 100 (README ligand example) … 200 (more steps).
