@@ -1,4 +1,14 @@
+# Helper scripts: anchor building, shape analysis, score parsing, tests.
+# This covers everything in "How to run" in README.md.
 numpy
 scipy
 biopython
 pytest
+
+# Phase 1 physics (src/generate_conformer.py, src/run_psi4_dft.py) is conda-only;
+# neither package installs reliably from pip:
+#   conda install -c conda-forge rdkit psi4
+#
+# The design tools are vendored clones, not pip packages: RFdiffusion, ProteinMPNN,
+# LigandMPNN, localcolabfold. See "How to run" in README.md.
+# RFdiffusionAA is cloud only, under Apptainer. See cloud/rfdiffusion_aa/README.md.

@@ -1,3 +1,9 @@
 # Shell scripts run under WSL/bash; CRLF would break the shebang and trailing
 # tokens (e.g. `compgen ... .pdb\r`). Pin them to LF on every platform/checkout.
 *.sh text eol=lf
+
+# PDB is a fixed-column format parsed by tools running under WSL/Linux (OpenBabel
+# reads the element column; a trailing \r lands in it). A CRLF checkout would corrupt
+# the cloud inputs silently, so pin them too. Without this, the generated inputs show
+# as modified on Windows even when their content is identical.
+*.pdb text eol=lf

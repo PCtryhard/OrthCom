@@ -10,6 +10,13 @@ and fix this file.
 > deprecated (see "Strategy"). If you find partial-diffusion-as-current guidance anywhere,
 > it is stale.
 
+> **This project is ACTIVE on 2-Nal.** The sibling repo `orthcom-immuno` says the
+> pocket-design pipeline is shelved and must not be reintroduced *there*. That applies to
+> that repo, not this one. The two share the verified ncAA anchors and the physics path and
+> ask different questions: OrthCom designs a pocket, orthcom-immuno scores ncAA peptides
+> against MHC-I. Do not import the immuno framing here, and do not reintroduce
+> RFdiffusionAA/LigandMPNN there.
+
 ## What OrthCom is
 
 A **methods project** with one question: can a computationally designed receptor pocket
@@ -25,12 +32,33 @@ communication axis / signalling platform") has been retired as marketing.
 
 - **PRIMARY = L-2-naphthylalanine (2-Nal):** a fused **bicyclic** aromatic side chain, much
   larger / differently shaped than any canonical residue → real geometry for a pocket to
-  grip, and no canonical look-alike to cross-react with. Commercially available.
+  grip. Commercially available. The earlier claim that 2-Nal has **no** canonical
+  look-alike was wrong: **Trp is one**, and it is the real cross-reactivity threat.
 - **NEGATIVE CONTROL / baseline = L-4-fluorophenylalanine (L4F):** kept *precisely* as the
   documented ncAA that proved **too subtle** to discriminate (a single para-F moved
   LigandMPNN sequence choice ~0.003 bits ≈ noise). **L4F is no longer the target.**
-- **Canonical comparator = PHE** (the F-absent / unsubstituted aromatic). Trp is the tougher
-  bicyclic look-alike worth testing against 2-Nal.
+- **Canonical comparators = PHE and Trp.** PHE is the F-absent aromatic and the easy
+  baseline. **Trp is the decisive one**: the only fused-bicyclic canonical aromatic.
+  Measured by `src/analyze_shape_gap.py`: 2-Nal carries **6.0x** the surplus volume over
+  PHE that L4F does (39.9 vs 6.7 A^3) and reaches 2.2 A further from CB. But the
+  PHE-shaped **void is ~0 A^3 for both**, so a pocket complementary to either ncAA still
+  admits PHE with no clash. The gap is lost contact, not steric exclusion. Against Trp
+  the lever is indole's **N1-H**: burying an unsatisfied donor against apolar surface
+  costs 1-3 kcal/mol. **Design toward that, not toward raw volume.**
+- **`ligand_TRP.pdb` is BUILT** by `src/prep_ligand_trp.py` (CCD entry TRP, sha1-pinned,
+  11 atoms = 10 C + 1 N, 0 O, fusion at CD2/CE2, NE1 donor asserted present).
+- **2-Nal-vs-Trp measured** by `src/analyze_shape_gap.py`. The overlay fixes CA/CB/ipso
+  then searches **chi2 for the Trp rotamer that MAXIMISES overlap** (Trp's best case, the
+  conservative direction) because indole is 6-5 fused where naphthalene is 6-6 and there
+  is no atom-to-atom ring correspondence to Kabsch-fit. At chi2 180 deg: shared 103.9 A^3
+  (**76% of 2-Nal**, so Trp is a good mimic), **Trp surplus 19.7 A^3** (the only genuine
+  steric term in this project; PHE's is 0.0), 2-Nal void 32.5 A^3, and **NE1 sits 0.56 A
+  from a naphthalene carbon position, INSIDE the 2-Nal envelope**.
+- **Design objective follows from that last number.** A pocket complementary to 2-Nal
+  necessarily buries Trp's N-H against apolar surface unsatisfied (1-3 kcal/mol, and
+  volume-independent). **Write the RFdiffusionAA objective around apolar surface at the
+  indole-N1 position**, not around making the pocket large. A merely large pocket admits
+  Trp at 76% overlap.
 
 ## Strategy: ligand-aware design is CURRENT; two earlier eras are DEPRECATED
 
@@ -60,10 +88,15 @@ Key/ligand you use.
 
 **Design ligands** (Stage 1; built by `src/prep_ligand.py` — side-chain-centric, **0 free
 oxygens**, no H):
-- `ligand_2NAL.pdb` — **PRIMARY** 2-naphthylalanine side chain (to be built in this pivot — Task B).
+- `ligand_2NAL.pdb`: **PRIMARY** 2-naphthylalanine side chain. **Built** by
+  `src/prep_ligand_2nal.py` (Task B done), sha1-pinned and geometry-checked on write:
+  12 C, 0 O, 11 ring C-C bonds, fusion carbons at C4A/C8A.
 - `ligand_L4F.pdb` — 4-fluoro-Phe side chain, resname **PFF**, 9 heavy atoms incl. the
   para-F. Now the **negative control**, not the target.
 - `ligand_PHE.pdb` — PHE control, 8 atoms (= L4F minus the F); differs by exactly one atom.
+- `ligand_TRP.pdb` — **the decisive canonical comparator**, 11 atoms (10 C + 1 N), built by
+  `src/prep_ligand_trp.py`. The N (atom `NE1`) is the whole point: it is the donor a 2-Nal
+  pocket has to bury unsatisfied. Do not strip it or treat this as "another aromatic".
 
 **Key structures:**
 - `CANON.pdb` — poly-Ala 15-mer with **PHE8**; the authoritative canonical (Trojan-Horse) Key.
@@ -78,8 +111,22 @@ oxygens**, no H):
 - `data/raw/starters/1mel.pdb1` — a camelid VHH + lysozyme; an *alternative* starter, NOT the
   committed scaffold.
 
-**Cloud package** *(tracked)*: `cloud/rfdiffusion_aa/` — `README.md` + a baked input PDB
-(`input_L4F_pocket.pdb`; a 2-Nal sibling to be added in this pivot — Task C).
+**Cloud package** *(tracked)*: `cloud/rfdiffusion_aa/` — `README.md` + two baked inputs.
+**Task C is DONE.** `input_2NAL_pocket.pdb` (resname **NAL**, 12 C, the PRIMARY target) is
+the one to run; `input_L4F_pocket.pdb` (resname **PFF**) is kept as the reproducible
+baseline. Both from `src/prep_rfdiffusion_aa_input.py --residue {2NAL,L4F}`, which
+regenerates the L4F file byte-for-byte. Contig raised **120 -> 130** for 2-Nal's extra
+reach (6.46 A from CB vs PHE's 4.28 A).
+- **The motif-scaffold fallback is DEAD for 2-Nal on 4QAE.** The builder reports carrier
+  clashes: L4F has **0** contacts under 3.0 A, 2-Nal has **8** (min 1.76 A). Harmless for
+  the de-novo contig (`insert_contig` discards the carrier) but it rules out the
+  motif-scaffold variant that earlier notes listed as a possible follow-up. De novo only.
+- **`src/check_n1_pocket.py` is the design filter**, because RFdiffusionAA has no objective
+  term for "apolar here". Per design it places the best-mimicking Trp and requires NE1
+  buried (>=8 protein heavy atoms within 5.0 A) AND no H-bond acceptor within 3.5 A.
+  Exits 0/1 so it can gate a loop. **Fan out designs, then filter**; do not select on
+  pocket size. Running it on the cloud input FAILS by design (4QAE was never built around
+  2-Nal) and that is the filter's negative control, not a bug.
 
 **Script landmines:**
 - Deep-learning tools can't represent the ncAA by residue name (e.g. `KeyError: 'L4F'`).

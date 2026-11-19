@@ -342,3 +342,78 @@ segfaults at recycle 2 → JAX `platform` allocator; synthetic proteins have no 
   = the real discrimination test.
 - Possible follow-up: a **motif-scaffold** variant (keep beta-barrel strands, rebuild
   loops around the docked anchor) if de-novo pockets don't grip the aromatic.
+
+
+---
+
+## 2026-11-19 - Task C done; strategic hold resolved in favour of continuing
+
+**STRATEGIC HOLD RESOLVED.** The 2026-06-07 hold paused Task C while a reframe toward
+immunogenicity screening was evaluated. That reframe exists as its own live repo
+(`orthcom-immuno`, which has measured Step 2 results). Decision: OrthCom continues on
+2-Nal as a separate active project rather than being shelved. The "Task C paused" and
+"RFdiffusionAA pocket design is shelved" lines above are superseded. `orthcom-immuno`
+said OrthCom was shelved; its README and CLAUDE.md were corrected to call it active and
+to frame the no-DL-pipeline rule as a scope boundary between two live projects.
+
+### What / why / effect
+
+**1. Measured why L4F failed, in volume rather than in bits.**
+New `src/analyze_shape_gap.py` (CPU, no weights) measures vdW volume on a grid after
+superposing each anchor on the canonical it must be told apart from. PHE 97.6 A^3,
+L4F 104.3, 2-Nal 136.6. The important column is the PHE-shaped *void*: 0.0 A^3 for L4F
+and 1.0 A^3 for 2-Nal. PHE fits entirely inside both ncAA envelopes, so a pocket
+complementary to either still admits PHE with no steric penalty. The L4F signal was
+~0.2 to 0.3 kcal/mol, which is why 0.0034 bits was not a model failure. Effect: the
+project can no longer claim discrimination against PHE on steric grounds.
+
+**2. Built the Trp anchor and measured the comparison that matters.**
+New `src/prep_ligand_trp.py` builds `data/raw/ligand_TRP.pdb` from RCSB CCD entry TRP
+(TRYPTOPHAN, C11 H12 N2 O2; source cif sha256 4cea7e28...6e36d6), Option A, 11 atoms =
+10 C + 1 N, 0 O, sha1-pinned 4b7ba79f447896636da9bd6ade07cd4b0cdd4db5, asserts fusion at
+CD2/CE2 and NE1 present.
+
+`analyze_shape_gap.py` now fixes CA/CB/ipso and searches chi2 for the Trp rotamer that
+MAXIMISES overlap with 2-Nal (Trp's best case, the conservative direction) because indole
+is 6-5 fused where naphthalene is 6-6 and there is no atom-to-atom ring correspondence to
+Kabsch-fit. At chi2 180 deg: shared 103.9 A^3 = **76% of 2-Nal**, Trp surplus 19.7 A^3,
+2-Nal void 32.5 A^3, and **NE1 lands 0.56 A from a naphthalene carbon position, inside
+the 2-Nal envelope**. Across the scan overlap ranges 72.6 to 103.9 A^3.
+
+Effect, and this is the main outcome: **the discrimination lever is the buried unsatisfied
+N-H donor, not volume.** A pocket selected for being large admits Trp at 76% overlap and
+discriminates nothing, which is the L4F mistake in a different form.
+
+**3. Task C: cloud package re-pointed at 2-Nal.**
+`src/prep_rfdiffusion_aa_input.py` generalized with `--residue {2NAL,L4F}`, default 2NAL.
+New `cloud/rfdiffusion_aa/input_2NAL_pocket.pdb` (carrier chain A 1391 atoms + NAL
+ligand, 12 C, 0 O, 11 ring bonds, kabsch RMSD 0.720 A). `--residue L4F` reproduces the
+tracked `input_L4F_pocket.pdb` byte-for-byte, verified by an empty `git diff`, so the
+baseline stays reproducible. The 2-Nal correspondence composes NAL->PHE with the existing
+PHE->docked map, since the docked anchor carries the malformed `C3..C9` names from
+`graft_residue.py`; its RMSD of 0.720 A against L4F's 0.707 A on the same distorted
+docked ring is the evidence the map is right.
+
+The builder now reports carrier clashes. **L4F: 0 contacts under 3.0 A, min 3.14 A.
+2-Nal: 8 contacts, min 1.76 A.** Harmless for the de-novo contig (the carrier is
+discarded by `insert_contig`) but it settles an open question: the motif-scaffold variant
+listed as a possible follow-up is **not available on 4QAE for 2-Nal**. De novo is the
+only route. Contig raised from 120 to 130 because 2-Nal reaches 6.46 A from CB against
+PHE's 4.28 A.
+
+**4. The N1 criterion is a filter, not an objective.**
+RFdiffusionAA conditions on ligand atoms and has no term for "apolar here", so the lever
+cannot be passed on the command line. New `src/check_n1_pocket.py` applies it per design:
+place the best-mimicking Trp, then require NE1 to be buried (at least 8 protein heavy
+atoms within 5.0 A) AND no H-bond acceptor within 3.5 A. Exits 0 on PASS, 1 on FAIL, so
+it can gate a loop. Run on the cloud input it FAILS with 3 atoms within 5 A of NE1, which
+is correct: 4QAE was never designed around 2-Nal. Keep that as the filter's negative
+control. Its shared-volume figure (104.0 A^3 at 0.2 A spacing) agrees with
+`analyze_shape_gap.py` (103.9 at 0.15 A), which cross-checks both.
+
+### Still not done
+- No cloud run launched. No pocket exists, so no affinity gap for any target.
+- The Trp result is shape, not affinity. The 1 to 3 kcal/mol donor penalty is a
+  literature range for buried unsatisfied donors, not a calculation on this system.
+- 2-Nal is held at its CCD ideal chi2 throughout; its own rotamer freedom is unexplored.
+- Physics path still exports no ESP grid and runs no AmberTools RESP step.
