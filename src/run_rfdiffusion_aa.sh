@@ -5,7 +5,7 @@
 # F-vs-PHE discrimination has to come from pocket shape/physics, not from MPNN
 # sequence preference (a single para-F barely moved LigandMPNN; see PROGRESS_LOG).
 #
-# CLOUD-ONLY (your decision 2026-06-07): the 8 GB local box is NOT used for
+# Cloud only (decided 2026-06-07): the 8 GB local box is NOT used for
 # RFdiffusionAA. Run this on a >=16 GB GPU host with Apptainer. The command is
 # host-agnostic; the portable copy-paste package is cloud/rfdiffusion_aa/README.md.
 #

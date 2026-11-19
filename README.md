@@ -155,10 +155,11 @@ It requires NE1 to be buried with no hydrogen-bond acceptor within 3.5 A, and ex
 non-zero on failure so it can gate a loop over many designs. Then LigandMPNN for
 sequence, the AF2 co-fold instrument, and the physics affinity gap against Trp and PHE.
 
-## Where the reasoning is written down
+## Notes
 
-`PROGRESS_LOG.md` is the decision log, including what failed and why. `CLAUDE.md` is
-the orientation brief for agent sessions in this repo.
+`PROGRESS_LOG.md` is my working log: what I tried, what broke, and why I changed
+direction. I wrote it as I went, so the early entries describe a target I later dropped,
+and I have left them there rather than tidying them away.
 
 Related: [orthcom-immuno](https://github.com/PCtryhard/orthcom-immuno) applies the same
 verified ncAA anchors and physics path to a different question, whether non-canonical

@@ -9,7 +9,7 @@ CCD atom C9 is renamed CB (side-chain beta carbon); CA is the alpha-carbon cap.
 Option A = side chain + CA cap only; 0 free-terminus oxygens; no H.
 2-Nal is the PRIMARY ncAA target (pivot from L4F, 2026-06-07).
 L4F and PHE controls remain in src/prep_ligand.py — that file is NOT modified here.
-Task C scope: generalize to --residue parameter.
+This script is 2-Nal specific; the cloud-input builder is the one that takes --residue.
 """
 import hashlib
 import os
